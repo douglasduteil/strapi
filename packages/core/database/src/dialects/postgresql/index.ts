@@ -1,12 +1,13 @@
-'use strict';
+import { Database } from '../..';
+import * as errors from '../../errors';
+import Dialect from '../dialect';
+import PostgresqlSchemaInspector from './schema-inspector';
 
-const errors = require('../../errors');
-const { Dialect } = require('../dialect');
-const PostgresqlSchemaInspector = require('./schema-inspector');
+export default class PostgresDialect extends Dialect {
+  schemaInspector: PostgresqlSchemaInspector;
 
-class PostgresDialect extends Dialect {
-  constructor(db) {
-    super(db);
+  constructor(db: Database) {
+    super(db, 'postgres');
 
     this.schemaInspector = new PostgresqlSchemaInspector(db);
   }
@@ -33,7 +34,7 @@ class PostgresDialect extends Dialect {
     return true;
   }
 
-  getSqlType(type) {
+  getSqlType(type: string) {
     switch (type) {
       case 'timestamp': {
         return 'datetime';
@@ -44,10 +45,12 @@ class PostgresDialect extends Dialect {
     }
   }
 
-  transformErrors(error) {
+  transformErrors(error: NodeJS.ErrnoException) {
     switch (error.code) {
       case '23502': {
-        throw new errors.NotNullError({ column: error.column });
+        throw new errors.NotNullError({
+          column: 'column' in error ? `${error.column}` : undefined,
+        });
       }
       default: {
         super.transformErrors(error);
@@ -55,5 +58,3 @@ class PostgresDialect extends Dialect {
     }
   }
 }
-
-module.exports = PostgresDialect;

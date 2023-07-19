@@ -112,10 +112,10 @@ class Database {
   }
 
   getSchemaName() {
-    this.connection.client.connectionSettings.schema;
+    return this.connection.client.connectionSettings.schema;
   }
 
-  getConnection(tableName) {
+  getConnection(tableName: string) {
     const schema = this.getSchemaName();
     const connection = tableName ? this.connection(tableName) : this.connection;
     return schema ? connection.withSchema(schema) : connection;
@@ -126,7 +126,7 @@ class Database {
     return schema ? trx.schema.withSchema(schema) : trx.schema;
   }
 
-  queryBuilder(uid) {
+  queryBuilder(uid: string) {
     return this.entityManager.createQueryBuilder(uid);
   }
 

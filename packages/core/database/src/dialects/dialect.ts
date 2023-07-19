@@ -1,5 +1,6 @@
 import type { Database } from '..';
 
+// TODO: make abstract
 export default class Dialect {
   db: Database;
 
@@ -38,7 +39,7 @@ export default class Dialect {
     return true;
   }
 
-  supportsOperator() {
+  supportsOperator(operator: string): boolean {
     return true;
   }
 
@@ -50,7 +51,7 @@ export default class Dialect {
     // noop
   }
 
-  transformErrors(error: unknown) {
+  transformErrors(error: Error | { message: string }) {
     if (error instanceof Error) {
       throw error;
     }

@@ -4,12 +4,15 @@ import fse from 'fs-extra';
 import * as errors from '../../errors';
 import Dialect from '../dialect';
 import SqliteSchemaInspector from './schema-inspector';
+import { Database } from '../..';
 
 const UNSUPPORTED_OPERATORS = ['$jsonSupersetOf'];
 
 export default class SqliteDialect extends Dialect {
-  constructor(db) {
-    super(db);
+  schemaInspector: SqliteSchemaInspector;
+
+  constructor(db: Database) {
+    super(db, 'sqlite');
 
     this.schemaInspector = new SqliteSchemaInspector(db);
   }
@@ -36,7 +39,7 @@ export default class SqliteDialect extends Dialect {
     return false;
   }
 
-  getSqlType(type) {
+  getSqlType(type: string) {
     switch (type) {
       case 'enum': {
         return 'text';
@@ -54,7 +57,7 @@ export default class SqliteDialect extends Dialect {
     }
   }
 
-  supportsOperator(operator) {
+  supportsOperator(operator: string) {
     return !UNSUPPORTED_OPERATORS.includes(operator);
   }
 
@@ -66,7 +69,7 @@ export default class SqliteDialect extends Dialect {
     await this.db.connection.raw(`pragma foreign_keys = on`);
   }
 
-  transformErrors(error) {
+  transformErrors(error: NodeJS.ErrnoException) {
     switch (error.errno) {
       case 19: {
         throw new errors.NotNullError(); // TODO: extract column name

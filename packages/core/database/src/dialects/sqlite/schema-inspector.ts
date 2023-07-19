@@ -1,3 +1,6 @@
+import { Database } from '../..';
+import { Schema, Table, Column, Index, ForeignKey } from '../types';
+
 const SQL_QUERIES = {
   TABLE_LIST: `select name from sqlite_master where type = 'table' and name NOT LIKE 'sqlite%'`,
   TABLE_INFO: `pragma table_info(??)`,
@@ -6,10 +9,50 @@ const SQL_QUERIES = {
   FOREIGN_KEY_LIST: 'pragma foreign_key_list(??)',
 };
 
-const toStrapiType = (column) => {
+interface RawColumn {
+  type: string;
+  args?: unknown[];
+  name: string;
+  defaultTo?: unknown;
+  notNullable?: boolean;
+  unsigned?: boolean;
+  unique?: boolean;
+  primary?: boolean;
+  pk?: boolean;
+  foreign?: {
+    table: string;
+    column: string;
+    onUpdate: string;
+    onDelete: string;
+  };
+  data_type?: string;
+  dflt_value?: unknown;
+  notnull?: boolean;
+}
+
+interface RawIndex {
+  name: string;
+  unique: boolean;
+}
+
+interface RawIndexInfo {
+  name: string;
+}
+
+interface RawForeignKey {
+  id: number;
+  seq: number;
+  table: string;
+  from: string;
+  to: string;
+  on_update: string;
+  on_delete: string;
+}
+
+const toStrapiType = (column: RawColumn): Partial<Omit<Column, 'type'>> & Pick<Column, 'type'> => {
   const { type } = column;
 
-  const rootType = type.toLowerCase().match(/[^(), ]+/)[0];
+  const rootType = type.toLowerCase().match(/[^(), ]+/)?.[0];
 
   switch (rootType) {
     case 'integer': {
@@ -55,12 +98,14 @@ const toStrapiType = (column) => {
 };
 
 export default class SqliteSchemaInspector {
-  constructor(db) {
+  db: Database;
+
+  constructor(db: Database) {
     this.db = db;
   }
 
   async getSchema() {
-    const schema = { tables: [] };
+    const schema: Schema = { tables: [] };
     const tables = await this.getTables();
 
     for (const tableName of tables) {
@@ -79,14 +124,14 @@ export default class SqliteSchemaInspector {
     return schema;
   }
 
-  async getTables() {
-    const rows = await this.db.connection.raw(SQL_QUERIES.TABLE_LIST);
+  async getTables(): Promise<string[]> {
+    const rows = await this.db.connection.raw<Pick<Table, 'name'>[]>(SQL_QUERIES.TABLE_LIST);
 
     return rows.map((row) => row.name);
   }
 
-  async getColumns(tableName) {
-    const rows = await this.db.connection.raw(SQL_QUERIES.TABLE_INFO, [tableName]);
+  async getColumns(tableName: string): Promise<Column[]> {
+    const rows = await this.db.connection.raw<RawColumn[]>(SQL_QUERIES.TABLE_INFO, [tableName]);
 
     return rows.map((row) => {
       const { type, args = [], ...rest } = toStrapiType(row);
@@ -103,13 +148,15 @@ export default class SqliteSchemaInspector {
     });
   }
 
-  async getIndexes(tableName) {
-    const indexes = await this.db.connection.raw(SQL_QUERIES.INDEX_LIST, [tableName]);
+  async getIndexes(tableName: string): Promise<Index[]> {
+    const indexes = await this.db.connection.raw<RawIndex[]>(SQL_QUERIES.INDEX_LIST, [tableName]);
 
     const ret = [];
 
     for (const index of indexes.filter((index) => !index.name.startsWith('sqlite_'))) {
-      const res = await this.db.connection.raw(SQL_QUERIES.INDEX_INFO, [index.name]);
+      const res = await this.db.connection.raw<RawIndexInfo[]>(SQL_QUERIES.INDEX_INFO, [
+        index.name,
+      ]);
 
       ret.push({
         columns: res.map((row) => row.name),
@@ -121,10 +168,12 @@ export default class SqliteSchemaInspector {
     return ret;
   }
 
-  async getForeignKeys(tableName) {
-    const fks = await this.db.connection.raw(SQL_QUERIES.FOREIGN_KEY_LIST, [tableName]);
+  async getForeignKeys(tableName: string): Promise<ForeignKey[]> {
+    const fks = await this.db.connection.raw<RawForeignKey[]>(SQL_QUERIES.FOREIGN_KEY_LIST, [
+      tableName,
+    ]);
 
-    const ret = {};
+    const ret: Record<RawForeignKey['id'], ForeignKey> = {};
 
     for (const fk of fks) {
       if (!ret[fk.id]) {

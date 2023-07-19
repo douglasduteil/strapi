@@ -1,4 +1,29 @@
-'use strict';
+import { Database } from '../..';
+import { Schema, Column, Index, ForeignKey } from '../types';
+
+interface RawTable {
+  table_name: string;
+}
+
+interface RawColumn {
+  data_type: string;
+  column_name: string;
+  character_maximum_length: number;
+  column_default: string;
+  is_nullable: string;
+}
+
+interface RawIndex {
+  indexrelid: string;
+  index_name: string;
+  column_name: string;
+  is_unique: boolean;
+  is_primary: boolean;
+}
+
+interface RawForeignKey {
+  constraint_name: string;
+}
 
 const SQL_QUERIES = {
   TABLE_LIST: /* sql */ `
@@ -77,8 +102,8 @@ const SQL_QUERIES = {
 `,
 };
 
-const toStrapiType = (column) => {
-  const rootType = column.data_type.toLowerCase().match(/[^(), ]+/)[0];
+const toStrapiType = (column: RawColumn) => {
+  const rootType = column.data_type.toLowerCase().match(/[^(), ]+/)?.[0];
 
   switch (rootType) {
     case 'integer': {
@@ -122,7 +147,7 @@ const toStrapiType = (column) => {
   }
 };
 
-const getIndexType = (index) => {
+const getIndexType = (index: RawIndex) => {
   if (index.is_primary) {
     return 'primary';
   }
@@ -134,13 +159,15 @@ const getIndexType = (index) => {
   return null;
 };
 
-class PostgresqlSchemaInspector {
-  constructor(db) {
+export default class PostgresqlSchemaInspector {
+  db: Database;
+
+  constructor(db: Database) {
     this.db = db;
   }
 
   async getSchema() {
-    const schema = { tables: [] };
+    const schema: Schema = { tables: [] };
 
     const tables = await this.getTables();
 
@@ -162,20 +189,20 @@ class PostgresqlSchemaInspector {
     return schema;
   }
 
-  getDatabaseSchema() {
+  getDatabaseSchema(): string {
     return this.db.getSchemaName() || 'public';
   }
 
-  async getTables() {
-    const { rows } = await this.db.connection.raw(SQL_QUERIES.TABLE_LIST, [
+  async getTables(): Promise<string[]> {
+    const { rows } = await this.db.connection.raw<{ rows: RawTable[] }>(SQL_QUERIES.TABLE_LIST, [
       this.getDatabaseSchema(),
     ]);
 
     return rows.map((row) => row.table_name);
   }
 
-  async getColumns(tableName) {
-    const { rows } = await this.db.connection.raw(SQL_QUERIES.LIST_COLUMNS, [
+  async getColumns(tableName: string): Promise<Column[]> {
+    const { rows } = await this.db.connection.raw<{ rows: RawColumn[] }>(SQL_QUERIES.LIST_COLUMNS, [
       this.getDatabaseSchema(),
       tableName,
     ]);
@@ -198,13 +225,13 @@ class PostgresqlSchemaInspector {
     });
   }
 
-  async getIndexes(tableName) {
-    const { rows } = await this.db.connection.raw(SQL_QUERIES.INDEX_LIST, [
+  async getIndexes(tableName: string): Promise<Index[]> {
+    const { rows } = await this.db.connection.raw<{ rows: RawIndex[] }>(SQL_QUERIES.INDEX_LIST, [
       this.getDatabaseSchema(),
       tableName,
     ]);
 
-    const ret = {};
+    const ret: Record<RawIndex['indexrelid'], Index> = {};
 
     for (const index of rows) {
       if (index.column_name === 'id') {
@@ -225,13 +252,13 @@ class PostgresqlSchemaInspector {
     return Object.values(ret);
   }
 
-  async getForeignKeys(tableName) {
-    const { rows } = await this.db.connection.raw(SQL_QUERIES.FOREIGN_KEY_LIST, [
-      this.getDatabaseSchema(),
-      tableName,
-    ]);
+  async getForeignKeys(tableName: string): Promise<ForeignKey[]> {
+    const { rows } = await this.db.connection.raw<{ rows: RawForeignKey[] }>(
+      SQL_QUERIES.FOREIGN_KEY_LIST,
+      [this.getDatabaseSchema(), tableName]
+    );
 
-    const ret = {};
+    const ret: Record<RawForeignKey['constraint_name'], ForeignKey> = {};
 
     for (const fk of rows) {
       ret[fk.constraint_name] = {
@@ -279,5 +306,3 @@ class PostgresqlSchemaInspector {
     return Object.values(ret);
   }
 }
-
-module.exports = PostgresqlSchemaInspector;
