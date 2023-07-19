@@ -119,11 +119,7 @@ const createHelpers = (db) => {
     const constraint = tableBuilder
       .foreign(columns, name)
       .references(referencedColumns)
-      .inTable(
-        db.connection.getSchemaName()
-          ? `${db.connection.getSchemaName()}.${referencedTable}`
-          : referencedTable
-      );
+      .inTable(db.getSchemaName() ? `${db.getSchemaName()}.${referencedTable}` : referencedTable);
 
     if (onDelete) {
       constraint.onDelete(onDelete);

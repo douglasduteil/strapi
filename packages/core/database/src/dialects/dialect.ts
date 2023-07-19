@@ -1,15 +1,20 @@
-'use strict';
+import type { Database } from '..';
 
-class Dialect {
-  constructor(db) {
+export default class Dialect {
+  db: Database;
+
+  client: string;
+
+  constructor(db: Database, client: string) {
     this.db = db;
+    this.client = client;
   }
 
   configure() {}
 
   initialize() {}
 
-  getSqlType(type) {
+  getSqlType(type: unknown) {
     return type;
   }
 
@@ -45,7 +50,7 @@ class Dialect {
     // noop
   }
 
-  transformErrors(error) {
+  transformErrors(error: unknown) {
     if (error instanceof Error) {
       throw error;
     }
@@ -57,7 +62,3 @@ class Dialect {
     return true;
   }
 }
-
-module.exports = {
-  Dialect,
-};

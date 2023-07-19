@@ -1,6 +1,4 @@
-'use strict';
-
-const { validateRelations } = require('./relations');
+import { validateRelations } from './relations';
 
 /**
  * Validate if the database is in a valid state before starting the server.

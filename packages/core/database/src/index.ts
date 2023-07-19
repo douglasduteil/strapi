@@ -1,25 +1,42 @@
-'use strict';
-
-const { getDialect } = require('./dialects');
-const createSchemaProvider = require('./schema');
-const createMetadata = require('./metadata');
-const { createEntityManager } = require('./entity-manager');
-const { createMigrationsProvider } = require('./migrations');
-const { createLifecyclesProvider } = require('./lifecycles');
-const createConnection = require('./connection');
-const errors = require('./errors');
-const transactionCtx = require('./transaction-context');
+import type { Knex } from 'knex';
+import { Dialect, getDialect } from './dialects';
+import createSchemaProvider from './schema';
+import createMetadata from './metadata';
+import { createEntityManager } from './entity-manager';
+import { createMigrationsProvider } from './migrations';
+import { createLifecyclesProvider } from './lifecycles';
+import { createConnection } from './connection';
+import * as errors from './errors';
+import { transactionCtx } from './transaction-context';
 
 // TODO: move back into strapi
-const { transformContentTypes } = require('./utils/content-types');
-const { validateDatabase } = require('./validations');
+import { transformContentTypes } from './utils/content-types';
+import { validateDatabase } from './validations';
+
+export interface DatabaseConfig {
+  connection: Knex.Config;
+  settings?: {
+    forceMigration?: boolean;
+    runMigrations?: boolean;
+    [key: string]: unknown;
+  };
+  models: any;
+}
 
 class Database {
-  constructor(config) {
+  connection: Knex;
+  dialect: Dialect;
+  config: any;
+  metadata: any;
+  schema: any;
+  migrations: any;
+  lifecycles: any;
+  entityManager: any;
+
+  constructor(config: DatabaseConfig) {
     this.metadata = createMetadata(config.models);
 
     this.config = {
-      connection: {},
       settings: {
         forceMigration: true,
         runMigrations: true,
@@ -94,14 +111,18 @@ class Database {
     });
   }
 
+  getSchemaName() {
+    this.connection.client.connectionSettings.schema;
+  }
+
   getConnection(tableName) {
-    const schema = this.connection.getSchemaName();
+    const schema = this.getSchemaName();
     const connection = tableName ? this.connection(tableName) : this.connection;
     return schema ? connection.withSchema(schema) : connection;
   }
 
   getSchemaConnection(trx = this.connection) {
-    const schema = this.connection.getSchemaName();
+    const schema = this.getSchemaName();
     return schema ? trx.schema.withSchema(schema) : trx.schema;
   }
 
@@ -123,7 +144,4 @@ Database.init = async (config) => {
   return db;
 };
 
-module.exports = {
-  Database,
-  errors,
-};
+export { Database, errors };

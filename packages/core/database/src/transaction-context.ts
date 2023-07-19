@@ -1,11 +1,18 @@
-'use strict';
+import { Knex } from 'knex';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
-const { AsyncLocalStorage } = require('async_hooks');
+export type Callback = () => Promise<void> | void;
 
-const storage = new AsyncLocalStorage();
+export interface Store {
+  trx: Knex.Transaction | null;
+  commitCallbacks: Callback[];
+  rollbackCallbacks: Callback[];
+}
+
+const storage = new AsyncLocalStorage<Store>();
 
 const transactionCtx = {
-  async run(store, cb) {
+  async run(store: Knex.Transaction, cb: Callback) {
     return storage.run({ trx: store, commitCallbacks: [], rollbackCallbacks: [] }, cb);
   },
 
@@ -14,7 +21,7 @@ const transactionCtx = {
     return store?.trx;
   },
 
-  async commit(trx) {
+  async commit(trx: Knex.Transaction) {
     const store = storage.getStore();
 
     // Clear transaction from store
@@ -32,7 +39,7 @@ const transactionCtx = {
     store.commitCallbacks = [];
   },
 
-  async rollback(trx) {
+  async rollback(trx: Knex.Transaction) {
     const store = storage.getStore();
 
     // Clear transaction from store
@@ -50,14 +57,14 @@ const transactionCtx = {
     store.rollbackCallbacks = [];
   },
 
-  onCommit(cb) {
+  onCommit(cb: Callback) {
     const store = storage.getStore();
     if (store?.commitCallbacks) {
       store.commitCallbacks.push(cb);
     }
   },
 
-  onRollback(cb) {
+  onRollback(cb: Callback) {
     const store = storage.getStore();
     if (store?.rollbackCallbacks) {
       store.rollbackCallbacks.push(cb);
@@ -65,4 +72,4 @@ const transactionCtx = {
   },
 };
 
-module.exports = transactionCtx;
+export { transactionCtx };

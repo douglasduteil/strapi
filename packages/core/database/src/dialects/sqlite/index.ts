@@ -1,15 +1,13 @@
-'use strict';
+import path from 'path';
+import fse from 'fs-extra';
 
-const path = require('path');
-const fse = require('fs-extra');
-
-const errors = require('../../errors');
-const { Dialect } = require('../dialect');
-const SqliteSchemaInspector = require('./schema-inspector');
+import * as errors from '../../errors';
+import Dialect from '../dialect';
+import SqliteSchemaInspector from './schema-inspector';
 
 const UNSUPPORTED_OPERATORS = ['$jsonSupersetOf'];
 
-class SqliteDialect extends Dialect {
+export default class SqliteDialect extends Dialect {
   constructor(db) {
     super(db);
 
@@ -83,5 +81,3 @@ class SqliteDialect extends Dialect {
     return false;
   }
 }
-
-module.exports = SqliteDialect;

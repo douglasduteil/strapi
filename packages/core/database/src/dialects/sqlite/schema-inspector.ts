@@ -1,5 +1,3 @@
-'use strict';
-
 const SQL_QUERIES = {
   TABLE_LIST: `select name from sqlite_master where type = 'table' and name NOT LIKE 'sqlite%'`,
   TABLE_INFO: `pragma table_info(??)`,
@@ -56,7 +54,7 @@ const toStrapiType = (column) => {
   }
 };
 
-class SqliteSchemaInspector {
+export default class SqliteSchemaInspector {
   constructor(db) {
     this.db = db;
   }
@@ -147,5 +145,3 @@ class SqliteSchemaInspector {
     return Object.values(ret);
   }
 }
-
-module.exports = SqliteSchemaInspector;

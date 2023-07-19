@@ -12,7 +12,7 @@ const isKnexQuery = (value) => {
  * Users can set the db schema only for Postgres in strapi database config.
  */
 const addSchema = (tableName) => {
-  const schemaName = strapi.db.connection.getSchemaName();
+  const schemaName = strapi.db.getSchemaName();
   return schemaName ? `${schemaName}.${tableName}` : tableName;
 };
 

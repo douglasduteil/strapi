@@ -1,9 +1,10 @@
-'use strict';
+import type { Database } from '..';
+import Dialect from './dialect';
 
 /**
  * Require our dialect-specific code
  */
-const getDialectClass = (client) => {
+const getDialectClass = (client: string): typeof Dialect => {
   switch (client) {
     case 'postgres':
       return require('./postgresql');
@@ -18,11 +19,8 @@ const getDialectClass = (client) => {
 
 /**
  * Get the dialect of a database client
- *
- * @param {string} The client value from a project database configuration
- * @returns {string} The dialect of that client
  */
-const getDialectName = (client) => {
+const getDialectName = (client: string) => {
   switch (client) {
     case 'postgres':
       return 'postgres';
@@ -37,17 +35,14 @@ const getDialectName = (client) => {
   }
 };
 
-const getDialect = (db) => {
+const getDialect = (db: Database) => {
   const { client } = db.config.connection;
   const dialectName = getDialectName(client);
 
   const constructor = getDialectClass(dialectName);
-  const dialect = new constructor(db);
-  dialect.client = dialectName;
+  const dialect = new constructor(db, dialectName);
 
   return dialect;
 };
 
-module.exports = {
-  getDialect,
-};
+export { Dialect, getDialect };

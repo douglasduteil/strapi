@@ -4,7 +4,7 @@ const _ = require('lodash/fp');
 
 const { DatabaseError } = require('../errors');
 const helpers = require('./helpers');
-const transactionCtx = require('../transaction-context');
+import { transactionCtx } from '../transaction-context';
 
 const createQueryBuilder = (uid, db, initialState = {}) => {
   const meta = db.metadata.get(uid);
