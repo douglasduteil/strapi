@@ -1,23 +1,12 @@
-'use strict';
-
-const _ = require('lodash');
-
-/**
- * @typedef {import(".").Subscriber } Subscriber
- * @typedef { import("../").Event } Event
- */
+import _ from 'lodash';
+import type { Event, Subscriber } from '../types';
 
 // NOTE: we could add onCreate & onUpdate on field level to do this instead
-
-/**
- * @type {Subscriber}
- */
-const timestampsLifecyclesSubscriber = {
+export const timestampsLifecyclesSubscriber: Subscriber = {
   /**
    * Init createdAt & updatedAt before create
-   * @param {Event} event
    */
-  beforeCreate(event) {
+  beforeCreate(event: Event) {
     const { data } = event.params;
 
     const now = new Date();
@@ -61,5 +50,3 @@ const timestampsLifecyclesSubscriber = {
     }
   },
 };
-
-module.exports = timestampsLifecyclesSubscriber;

@@ -1,25 +1,39 @@
-'use strict';
+import { strict as assert } from 'assert';
 
-const assert = require('assert').strict;
+import * as subscriberUtils from './subscribers';
 
-const timestampsLifecyclesSubscriber = require('./subscribers/timestamps');
-const modelLifecyclesSubscriber = require('./subscribers/models-lifecycles');
+import type { Action, Event, Params, Subscriber } from './types';
+import type { Database } from '..';
 
-const isValidSubscriber = (subscriber) => {
-  return (
-    typeof subscriber === 'function' || (typeof subscriber === 'object' && subscriber !== null)
-  );
-};
+export type * from './types';
 
-/**
- * @type {import('.').createLifecyclesProvider}
- */
-const createLifecyclesProvider = (db) => {
-  let subscribers = [timestampsLifecyclesSubscriber, modelLifecyclesSubscriber];
+export type State = Record<string, unknown>;
+export type States = Map<Subscriber, State>;
+
+export interface Properties {
+  params: Params;
+  result?: unknown;
+}
+
+export interface LifecycleProvider {
+  subscribe(subscriber: Subscriber): () => void;
+  clear(): void;
+  run(action: Action, uid: string, properties: Properties, states?: States): Promise<States>;
+  createEvent(action: Action, uid: string, properties: Properties, state: State): Event;
+}
+
+export const createLifecyclesProvider = (db: Database): LifecycleProvider => {
+  let subscribers = [
+    subscriberUtils.timestampsLifecyclesSubscriber,
+    subscriberUtils.modelsLifecyclesSubscriber,
+  ];
 
   return {
     subscribe(subscriber) {
-      assert(isValidSubscriber(subscriber), 'Invalid subscriber. Expected function or object');
+      assert(
+        subscriberUtils.isValidSubscriber(subscriber),
+        'Invalid subscriber. Expected function or object'
+      );
 
       subscribers.push(subscriber);
 
@@ -30,12 +44,6 @@ const createLifecyclesProvider = (db) => {
       subscribers = [];
     },
 
-    /**
-     * @param {string} action
-     * @param {string} uid
-     * @param {{ params?: any, result?: any }} properties
-     * @param {Map<any, any>} state
-     */
     createEvent(action, uid, properties, state) {
       const model = db.metadata.get(uid);
 
@@ -73,7 +81,7 @@ const createLifecyclesProvider = (db) => {
           const state = states.get(subscriber) || {};
           const event = this.createEvent(action, uid, properties, state);
 
-          await subscriber[action](event);
+          await subscriber[action]?.(event);
           if (event.state) {
             states.set(subscriber, event.state);
           }
@@ -83,8 +91,4 @@ const createLifecyclesProvider = (db) => {
       return states;
     },
   };
-};
-
-module.exports = {
-  createLifecyclesProvider,
 };

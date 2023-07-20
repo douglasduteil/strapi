@@ -1,5 +1,6 @@
 import { Database } from '../';
 import { Action } from '../lifecycles';
+import { SubscriberMap } from '../lifecycles';
 
 type Type =
   | 'string'
@@ -33,9 +34,7 @@ export interface Model {
     };
     [k: string]: Attribute;
   };
-  lifecycles?: {
-    [k in Action]: () => void;
-  };
+  lifecycles?: SubscriberMap;
 }
 
 export interface SchemaProvider {

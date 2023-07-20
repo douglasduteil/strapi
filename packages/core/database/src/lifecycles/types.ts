@@ -1,6 +1,4 @@
-import { Database } from '../';
-import { Model } from '../schema';
-import { Subscriber } from './subscribers';
+import type { Model } from '../schema';
 
 export type Action =
   | 'beforeCreate'
@@ -38,14 +36,13 @@ export interface Event {
   action: Action;
   model: Model;
   params: Params;
+  state: Record<string, unknown>;
 }
 
-export interface LifecycleProvider {
-  subscribe(subscriber: Subscriber): () => void;
-  clear(): void;
-  run(action: Action, uid: string, properties: any): Promise<Map<any, any>>;
-  run(action: Action, uid: string, properties: any, states: Map<any, any>): Promise<Map<any, any>>;
-  createEvent(action: Action, uid: string, properties: any): Event;
-}
+type SubscriberFn = (event: Event) => Promise<void> | void;
 
-export function createLifecyclesProvider(db: Database): LifecycleProvider;
+export type SubscriberMap = {
+  models: string[];
+} & Partial<Record<Action, SubscriberFn>>;
+
+export type Subscriber = SubscriberFn | SubscriberMap;
