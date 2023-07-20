@@ -1,4 +1,5 @@
 import type { Knex } from 'knex';
+
 import { Dialect, getDialect } from './dialects';
 import createSchemaProvider from './schema';
 import createMetadata from './metadata';
@@ -25,12 +26,19 @@ export interface DatabaseConfig {
 
 class Database {
   connection: Knex;
+
   dialect: Dialect;
-  config: any;
+
+  config: DatabaseConfig;
+
   metadata: any;
+
   schema: any;
+
   migrations: any;
+
   lifecycles: any;
+
   entityManager: any;
 
   constructor(config: DatabaseConfig) {

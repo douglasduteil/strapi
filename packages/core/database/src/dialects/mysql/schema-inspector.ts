@@ -1,4 +1,29 @@
-'use strict';
+import { Database } from '../..';
+import type { Column, ForeignKey, Index, Schema } from '../types';
+
+interface RawTable {
+  table_name: string;
+}
+
+interface RawColumn {
+  data_type: string;
+  column_name: string;
+  character_maximum_length: number;
+  column_default: string;
+  is_nullable: string;
+  column_type: string;
+  column_key: string;
+}
+
+interface RawIndex {
+  Key_name: string;
+  Column_name: string;
+  Non_unique: boolean;
+}
+
+interface RawForeignKey {
+  constraint_name: string;
+}
 
 const SQL_QUERIES = {
   TABLE_LIST: /* sql */ `
@@ -55,8 +80,8 @@ const SQL_QUERIES = {
   `,
 };
 
-const toStrapiType = (column) => {
-  const rootType = column.data_type.toLowerCase().match(/[^(), ]+/)[0];
+const toStrapiType = (column: RawColumn) => {
+  const rootType = column.data_type.toLowerCase().match(/[^(), ]+/)?.[0];
 
   switch (rootType) {
     case 'int': {
@@ -108,13 +133,15 @@ const toStrapiType = (column) => {
   }
 };
 
-class MysqlSchemaInspector {
-  constructor(db) {
+export default class MysqlSchemaInspector {
+  db: Database;
+
+  constructor(db: Database) {
     this.db = db;
   }
 
   async getSchema() {
-    const schema = { tables: [] };
+    const schema: Schema = { tables: [] };
 
     const tables = await this.getTables();
 
@@ -136,14 +163,16 @@ class MysqlSchemaInspector {
     return schema;
   }
 
-  async getTables() {
-    const [rows] = await this.db.connection.raw(SQL_QUERIES.TABLE_LIST);
+  async getTables(): Promise<string[]> {
+    const [rows] = await this.db.connection.raw<[RawTable[]]>(SQL_QUERIES.TABLE_LIST);
 
     return rows.map((row) => row.table_name);
   }
 
-  async getColumns(tableName) {
-    const [rows] = await this.db.connection.raw(SQL_QUERIES.LIST_COLUMNS, [tableName]);
+  async getColumns(tableName: string): Promise<Column[]> {
+    const [rows] = await this.db.connection.raw<[RawColumn[]]>(SQL_QUERIES.LIST_COLUMNS, [
+      tableName,
+    ]);
 
     return rows.map((row) => {
       const { type, args = [], ...rest } = toStrapiType(row);
@@ -160,10 +189,10 @@ class MysqlSchemaInspector {
     });
   }
 
-  async getIndexes(tableName) {
-    const [rows] = await this.db.connection.raw(SQL_QUERIES.INDEX_LIST, [tableName]);
+  async getIndexes(tableName: string): Promise<Index[]> {
+    const [rows] = await this.db.connection.raw<[RawIndex[]]>(SQL_QUERIES.INDEX_LIST, [tableName]);
 
-    const ret = {};
+    const ret: Record<RawIndex['Key_name'], Index> = {};
 
     for (const index of rows) {
       if (index.Column_name === 'id') {
@@ -184,10 +213,12 @@ class MysqlSchemaInspector {
     return Object.values(ret);
   }
 
-  async getForeignKeys(tableName) {
-    const [rows] = await this.db.connection.raw(SQL_QUERIES.FOREIGN_KEY_LIST, [tableName]);
+  async getForeignKeys(tableName: string): Promise<ForeignKey[]> {
+    const [rows] = await this.db.connection.raw<[RawForeignKey[]]>(SQL_QUERIES.FOREIGN_KEY_LIST, [
+      tableName,
+    ]);
 
-    const ret = {};
+    const ret: Record<RawForeignKey['constraint_name'], ForeignKey> = {};
 
     for (const fk of rows) {
       ret[fk.constraint_name] = {
@@ -230,5 +261,3 @@ class MysqlSchemaInspector {
     return Object.values(ret);
   }
 }
-
-module.exports = MysqlSchemaInspector;

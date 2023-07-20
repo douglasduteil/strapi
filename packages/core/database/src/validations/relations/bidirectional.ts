@@ -1,9 +1,9 @@
-'use strict';
+import types from '../../types';
+import { getJoinTableName } from '../../metadata/relations';
 
-const types = require('../../types');
-const { getJoinTableName } = require('../../metadata/relations');
+import type { Database } from '../..';
 
-const getLinksWithoutMappedBy = (db) => {
+const getLinksWithoutMappedBy = (db: Database) => {
   const relationsToUpdate = {};
 
   db.metadata.forEach((contentType) => {
@@ -48,9 +48,8 @@ const isLinkTableEmpty = async (db, linkTableName) => {
  * @param {*} db
  * @return {*}
  */
-const validateBidirectionalRelations = async (db) => {
+export const validateBidirectionalRelations = async (db: Database) => {
   const invalidLinks = getLinksWithoutMappedBy(db);
-  const errorList = [];
 
   for (const { relation, invRelation } of invalidLinks) {
     const contentType = db.metadata.get(invRelation.target);
@@ -80,10 +79,4 @@ const validateBidirectionalRelations = async (db) => {
       // Both sides have data in the join table
     }
   }
-
-  return errorList;
-};
-
-module.exports = {
-  validateBidirectionalRelations,
 };

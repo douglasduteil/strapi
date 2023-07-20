@@ -1,19 +1,25 @@
-'use strict';
+import semver from 'semver';
 
-const semver = require('semver');
+import Dialect from '../dialect';
+import MysqlSchemaInspector from './schema-inspector';
+import MysqlDatabaseInspector from './database-inspector';
+import { MYSQL } from './constants';
+import { Database } from '../..';
 
-const { Dialect } = require('../dialect');
-const MysqlSchemaInspector = require('./schema-inspector');
-const MysqlDatabaseInspector = require('./database-inspector');
-const { MYSQL } = require('./constants');
+import type { Information } from './database-inspector';
 
-class MysqlDialect extends Dialect {
-  constructor(db) {
-    super(db);
+export default class MysqlDialect extends Dialect {
+  schemaInspector: MysqlSchemaInspector;
+
+  databaseInspector: MysqlDatabaseInspector;
+
+  info: Information | null = null;
+
+  constructor(db: Database) {
+    super(db, 'mysql');
 
     this.schemaInspector = new MysqlSchemaInspector(db);
     this.databaseInspector = new MysqlDatabaseInspector(db);
-    this.info = null;
   }
 
   configure() {
@@ -88,5 +94,3 @@ class MysqlDialect extends Dialect {
     super.transformErrors(error);
   }
 }
-
-module.exports = MysqlDialect;

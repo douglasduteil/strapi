@@ -20,10 +20,12 @@ export interface Column {
   primary?: boolean;
 }
 
+export type IndexType = 'primary' | 'unique' | null;
+
 export interface Index {
   columns: string[];
   name: string;
-  type: 'primary' | 'unique' | null;
+  type: IndexType;
 }
 
 export interface ForeignKey {

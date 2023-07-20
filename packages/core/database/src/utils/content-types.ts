@@ -1,6 +1,15 @@
-'use strict';
+interface Attribute {
+  type: string;
+  multiple?: boolean;
+}
 
-const transformAttribute = (attribute) => {
+interface ContentType {
+  modelName: string;
+  collectionName: string;
+  attributes: Record<string, Attribute>;
+}
+
+const transformAttribute = (attribute: Attribute) => {
   switch (attribute.type) {
     case 'media': {
       return {
@@ -17,7 +26,7 @@ const transformAttribute = (attribute) => {
 };
 
 // TODO: model logic outside DB
-const transformContentTypes = (contentTypes) => {
+export const transformContentTypes = (contentTypes: ContentType[]) => {
   return contentTypes.map((contentType) => {
     const model = {
       ...contentType,
@@ -36,5 +45,3 @@ const transformContentTypes = (contentTypes) => {
     return model;
   });
 };
-
-module.exports = { transformContentTypes };

@@ -1,18 +1,10 @@
 import { validateRelations } from './relations';
 
+import type { Database } from '..';
+
 /**
  * Validate if the database is in a valid state before starting the server.
- *
- * @param {*} db - Database instance
  */
-async function validateDatabase(db) {
-  const relationErrors = await validateRelations(db);
-  const errorList = [...relationErrors];
-
-  if (errorList.length > 0) {
-    errorList.forEach((error) => strapi.log.error(error));
-    throw new Error('There are errors in some of your models. Please check the logs above.');
-  }
+export async function validateDatabase(db: Database) {
+  await validateRelations(db);
 }
-
-module.exports = { validateDatabase };

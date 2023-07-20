@@ -1,5 +1,5 @@
 import { Database } from '../..';
-import { Schema, Table, Column, Index, ForeignKey } from '../types';
+import { Schema, Column, Index, IndexType, ForeignKey } from '../types';
 
 const SQL_QUERIES = {
   TABLE_LIST: `select name from sqlite_master where type = 'table' and name NOT LIKE 'sqlite%'`,
@@ -9,6 +9,9 @@ const SQL_QUERIES = {
   FOREIGN_KEY_LIST: 'pragma foreign_key_list(??)',
 };
 
+interface RawTable {
+  name: string;
+}
 interface RawColumn {
   type: string;
   args?: unknown[];
@@ -49,7 +52,7 @@ interface RawForeignKey {
   on_delete: string;
 }
 
-const toStrapiType = (column: RawColumn): Partial<Omit<Column, 'type'>> & Pick<Column, 'type'> => {
+const toStrapiType = (column: RawColumn) => {
   const { type } = column;
 
   const rootType = type.toLowerCase().match(/[^(), ]+/)?.[0];
@@ -125,7 +128,7 @@ export default class SqliteSchemaInspector {
   }
 
   async getTables(): Promise<string[]> {
-    const rows = await this.db.connection.raw<Pick<Table, 'name'>[]>(SQL_QUERIES.TABLE_LIST);
+    const rows = await this.db.connection.raw<RawTable[]>(SQL_QUERIES.TABLE_LIST);
 
     return rows.map((row) => row.name);
   }
@@ -158,10 +161,12 @@ export default class SqliteSchemaInspector {
         index.name,
       ]);
 
+      const type: IndexType = index.unique ? 'unique' : null;
+
       ret.push({
         columns: res.map((row) => row.name),
         name: index.name,
-        type: index.unique ? 'unique' : null,
+        type,
       });
     }
 

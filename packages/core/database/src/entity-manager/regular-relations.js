@@ -265,7 +265,7 @@ const cleanOrderColumns = async ({ id, attribute, db, inverseRelIds, transaction
       WHERE b.id = a.id;
     */
     default: {
-      const joinTableName = addSchema(joinTable.name);
+      const joinTableName = addSchema(db, joinTable.name);
 
       // raw query as knex doesn't allow updating from a subquery
       // https://github.com/knex/knex/issues/2504
