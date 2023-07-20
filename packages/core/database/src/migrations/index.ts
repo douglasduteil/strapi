@@ -1,17 +1,33 @@
-'use strict';
+import path from 'node:path';
+import fse from 'fs-extra';
+import { Umzug } from 'umzug';
 
-const path = require('path');
-const fse = require('fs-extra');
-const { Umzug } = require('umzug');
+import type { Resolver } from 'umzug';
+import type { Knex } from 'knex';
 
-const createStorage = require('./storage');
+import { createStorage } from './storage';
 
-const wrapTransaction = (db) => (fn) => () =>
-  db.connection.transaction((trx) => Promise.resolve(fn(trx)));
+import type { Database } from '..';
+
+export interface MigrationProvider {
+  shouldRun(): Promise<boolean>;
+  up(): Promise<void>;
+  down(): Promise<void>;
+}
+
+type MigrationResolver = Resolver<{ db: Database }>;
+
+const wrapTransaction = (db: Database) => (fn: (knex: Knex) => unknown) => () => {
+  return db.connection.transaction((trx) => Promise.resolve(fn(trx)));
+};
 
 // TODO: check multiple commands in one sql statement
-const migrationResolver = ({ name, path, context }) => {
+const migrationResolver: MigrationResolver = ({ name, path, context }) => {
   const { db } = context;
+
+  if (!path) {
+    throw new Error(`Migration ${name} has no path`);
+  }
 
   // if sql file run with knex raw
   if (path.match(/\.sql$/)) {
@@ -20,11 +36,14 @@ const migrationResolver = ({ name, path, context }) => {
     return {
       name,
       up: wrapTransaction(db)((knex) => knex.raw(sql)),
-      down() {},
+      async down() {
+        throw new Error('Down migration is not supported for sql files');
+      },
     };
   }
 
   // NOTE: we can add some ts register if we want to handle ts migration files at some point
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const migration = require(path);
   return {
     name,
@@ -33,13 +52,14 @@ const migrationResolver = ({ name, path, context }) => {
   };
 };
 
-const createUmzugProvider = (db) => {
+const createUmzugProvider = (db: Database) => {
   const migrationDir = path.join(strapi.dirs.app.root, 'database/migrations');
 
   fse.ensureDirSync(migrationDir);
 
   return new Umzug({
     storage: createStorage({ db, tableName: 'strapi_migrations' }),
+    logger: console,
     context: { db },
     migrations: {
       glob: ['*.{js,sql}', { cwd: migrationDir }],
@@ -54,14 +74,14 @@ const createUmzugProvider = (db) => {
  * Creates migrations provider
  * @type {import('.').createMigrationsProvider}
  */
-const createMigrationsProvider = (db) => {
+export const createMigrationsProvider = (db: Database): MigrationProvider => {
   const migrations = createUmzugProvider(db);
 
   return {
     async shouldRun() {
       const pending = await migrations.pending();
 
-      return pending.length > 0 && db.config.settings.runMigrations;
+      return pending.length > 0 && db.config?.settings?.runMigrations === true;
     },
     async up() {
       await migrations.up();
@@ -71,5 +91,3 @@ const createMigrationsProvider = (db) => {
     },
   };
 };
-
-module.exports = { createMigrationsProvider };

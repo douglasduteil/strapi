@@ -1,6 +1,11 @@
-'use strict';
+import type { Database } from '..';
 
-const createStorage = (opts = {}) => {
+export interface Options {
+  db: Database;
+  tableName?: string;
+}
+
+export const createStorage = (opts: Options) => {
   const { db, tableName = 'strapi_migrations' } = opts;
 
   const hasMigrationTable = () => db.getSchemaConnection().hasTable(tableName);
@@ -14,7 +19,7 @@ const createStorage = (opts = {}) => {
   };
 
   return {
-    async logMigration({ name }) {
+    async logMigration({ name }: { name: string }) {
       await db
         .getConnection()
         .insert({
@@ -24,7 +29,7 @@ const createStorage = (opts = {}) => {
         .into(tableName);
     },
 
-    async unlogMigration({ name }) {
+    async unlogMigration({ name }: { name: string }) {
       await db.getConnection(tableName).del().where({ name });
     },
 
@@ -40,5 +45,3 @@ const createStorage = (opts = {}) => {
     },
   };
 };
-
-module.exports = createStorage;

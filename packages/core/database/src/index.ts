@@ -123,7 +123,7 @@ class Database {
     return this.connection.client.connectionSettings.schema;
   }
 
-  getConnection(tableName: string) {
+  getConnection(tableName?: string) {
     const schema = this.getSchemaName();
     const connection = tableName ? this.connection(tableName) : this.connection;
     return schema ? connection.withSchema(schema) : connection;
