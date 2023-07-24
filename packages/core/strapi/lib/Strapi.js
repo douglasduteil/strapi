@@ -582,10 +582,6 @@ const initializer = (options) => {
 
 module.exports = new Proxy(initializer, {
   get(_, prop) {
-    if (!singleton) {
-      throw new Error('Strapi is not initialized');
-    }
-
     if (prop === 'Strapi') {
       return Strapi;
     }
@@ -598,9 +594,10 @@ module.exports = new Proxy(initializer, {
       return compile;
     }
 
+    if (!singleton) {
+      throw new Error('Strapi is not initialized');
+    }
+
     return Reflect.get(singleton, prop, singleton);
-  },
-  set() {
-    throw new Error('Strapi is a readonly object');
   },
 });
