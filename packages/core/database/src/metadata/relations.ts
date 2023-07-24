@@ -1,25 +1,59 @@
-/**
- * @module relations
- */
+import _ from 'lodash/fp';
 
-'use strict';
+import type {
+  Meta,
+  RelationalAttribute,
+  Attribute,
+  Metadata,
+  AttributeJoinTable,
+  BidirectionalRelationalAttribute,
+  MorphJoinTable,
+} from './types';
+import { isRelation } from '../types';
 
-const _ = require('lodash/fp');
+interface JoinDetails {
+  attribute: RelationalAttribute;
+  attributeName: string;
+  meta: Meta;
+}
 
 const hasInversedBy = _.has('inversedBy');
 const hasMappedBy = _.has('mappedBy');
 
-const isPolymorphic = (attribute) =>
+export const isPolymorphic = (attribute: RelationalAttribute) =>
   ['morphOne', 'morphMany', 'morphToOne', 'morphToMany'].includes(attribute.relation);
-const isOneToAny = (attribute) => ['oneToOne', 'oneToMany'].includes(attribute.relation);
-const isManyToAny = (attribute) => ['manyToMany', 'manyToOne'].includes(attribute.relation);
-const isAnyToOne = (attribute) => ['oneToOne', 'manyToOne'].includes(attribute.relation);
-const isAnyToMany = (attribute) => ['oneToMany', 'manyToMany'].includes(attribute.relation);
-const isBidirectional = (attribute) => hasInversedBy(attribute) || hasMappedBy(attribute);
-const isOwner = (attribute) => !isBidirectional(attribute) || hasInversedBy(attribute);
-const shouldUseJoinTable = (attribute) => attribute.useJoinTable !== false;
-const getJoinTableName = (tableName, attributeName) =>
+
+export const isOneToAny = (attribute: RelationalAttribute) =>
+  ['oneToOne', 'oneToMany'].includes(attribute.relation);
+
+export const isManyToAny = (attribute: RelationalAttribute) =>
+  ['manyToMany', 'manyToOne'].includes(attribute.relation);
+
+export const isAnyToOne = (attribute: RelationalAttribute) =>
+  ['oneToOne', 'manyToOne'].includes(attribute.relation);
+
+export const isAnyToMany = (attribute: RelationalAttribute) =>
+  ['oneToMany', 'manyToMany'].includes(attribute.relation);
+
+export const isRelationAttribute = (attribute: Attribute): attribute is RelationalAttribute =>
+  isRelation(attribute.type);
+
+export const isBidirectional = (
+  attribute: RelationalAttribute
+): attribute is BidirectionalRelationalAttribute =>
+  hasInversedBy(attribute) || hasMappedBy(attribute);
+
+const isOwner = (attribute: RelationalAttribute) =>
+  !isBidirectional(attribute) || hasInversedBy(attribute);
+
+const shouldUseJoinTable = (attribute: RelationalAttribute) => attribute.useJoinTable !== false;
+
+export const getJoinTableName = (tableName: string, attributeName: string) =>
   _.snakeCase(`${tableName}_${attributeName}_links`);
+
+export const hasOrderColumn = (attribute: RelationalAttribute) => isAnyToMany(attribute);
+export const hasInverseOrderColumn = (attribute: RelationalAttribute) =>
+  isBidirectional(attribute) && isManyToAny(attribute);
 
 /**
  * Creates a oneToOne relation metadata
@@ -34,14 +68,13 @@ const getJoinTableName = (tableName, attributeName) =>
  * else
  *   this property must be set by the owner side
  *   verify the owner side is valid // should be done before or at the same time ?
- *
- * @param {string} attributeName
- * @param {Attribute} attribute
- * @param {ModelMetadata} meta
- * @param {Metadata} metadata
- * @retuns void
  */
-const createOneToOne = (attributeName, attribute, meta, metadata) => {
+const createOneToOne = (
+  attributeName: string,
+  attribute: RelationalAttribute,
+  meta: Meta,
+  metadata: Metadata
+) => {
   if (isOwner(attribute)) {
     if (shouldUseJoinTable(attribute)) {
       createJoinTable(metadata, {
@@ -69,13 +102,13 @@ const createOneToOne = (attributeName, attribute, meta, metadata) => {
  * if bidirectional then
  *   cannot be owning side
  *   do nothing
- *
- * @param {string} attributeName
- * @param {Attribute} attribute
- * @param {ModelMetadata} meta
- * @param {Metadata} metadata
  */
-const createOneToMany = (attributeName, attribute, meta, metadata) => {
+const createOneToMany = (
+  attributeName: string,
+  attribute: RelationalAttribute,
+  meta: Meta,
+  metadata: Metadata
+) => {
   if (!isBidirectional(attribute)) {
     createJoinTable(metadata, {
       attribute,
@@ -102,13 +135,13 @@ const createOneToMany = (attributeName, attribute, meta, metadata) => {
  *   else
  *     create join column
  *   set inverse attribute joinCol or joinTable info correctly
- *
- * @param {string} attributeName
- * @param {Attribute} attribute
- * @param {ModelMetadata} meta
- * @param {Metadata} metadata
  */
-const createManyToOne = (attributeName, attribute, meta, metadata) => {
+const createManyToOne = (
+  attributeName: string,
+  attribute: RelationalAttribute,
+  meta: Meta,
+  metadata: Metadata
+) => {
   if (isBidirectional(attribute) && !isOwner(attribute)) {
     throw new Error('The many side of a manyToOne must be the owning side');
   }
@@ -139,13 +172,13 @@ const createManyToOne = (attributeName, attribute, meta, metadata) => {
  *       create join table
  *   else
  *     do nothing
- *
- * @param {string} attributeName
- * @param {Attribute} attribute
- * @param {ModelMetadata} meta
- * @param {Metadata} metadata
  */
-const createManyToMany = (attributeName, attribute, meta, metadata) => {
+const createManyToMany = (
+  attributeName: string,
+  attribute: RelationalAttribute,
+  meta: Meta,
+  metadata: Metadata
+) => {
   if (!isBidirectional(attribute) || isOwner(attribute)) {
     createJoinTable(metadata, {
       attribute,
@@ -165,14 +198,8 @@ const createManyToMany = (attributeName, attribute, meta, metadata) => {
  *
  * if bidirectionnal
  *  set info in the traget
- *
- *
- * @param {string} attributeName
- * @param {Attribute} attribute
- * @param {ModelMetadata} meta
- * @param {Metadata} metadata
  */
-const createMorphToOne = (attributeName, attribute /* meta, metadata */) => {
+const createMorphToOne = (attributeName: string, attribute: RelationalAttribute) => {
   const idColumnName = 'target_id';
   const typeColumnName = 'target_type';
 
@@ -195,13 +222,13 @@ const createMorphToOne = (attributeName, attribute /* meta, metadata */) => {
 
 /**
  * Creates a morphToMany relation metadata
- *
- * @param {string} attributeName
- * @param {Attribute} attribute
- * @param {ModelMetadata} meta
- * @param {Metadata} metadata
  */
-const createMorphToMany = (attributeName, attribute, meta, metadata) => {
+const createMorphToMany = (
+  attributeName: string,
+  attribute: RelationalAttribute,
+  meta: Meta,
+  metadata: Metadata
+) => {
   const joinTableName = _.snakeCase(`${meta.tableName}_${attributeName}_morphs`);
 
   const joinColumnName = _.snakeCase(`${meta.singularName}_id`);
@@ -268,7 +295,7 @@ const createMorphToMany = (attributeName, attribute, meta, metadata) => {
     ],
   });
 
-  const joinTable = {
+  const joinTable: MorphJoinTable = {
     name: joinTableName,
     joinColumn: {
       name: joinColumnName,
@@ -284,7 +311,7 @@ const createMorphToMany = (attributeName, attribute, meta, metadata) => {
       },
     },
     orderBy: {
-      order: 'asc',
+      order: 'asc' as const,
     },
     pivotColumns: [joinColumnName, typeColumnName, idColumnName],
   };
@@ -294,53 +321,53 @@ const createMorphToMany = (attributeName, attribute, meta, metadata) => {
 
 /**
  * Creates a morphOne relation metadata
- *
- * @param {string} attributeName
- * @param {Attribute} attribute
- * @param {ModelMetadata} meta
- * @param {Metadata} metadata
  */
-const createMorphOne = (attributeName, attribute, meta, metadata) => {
+const createMorphOne = (
+  attributeName: string,
+  attribute: RelationalAttribute,
+  meta: Meta,
+  metadata: Metadata
+) => {
   const targetMeta = metadata.get(attribute.target);
 
   if (!targetMeta) {
     throw new Error(`Morph target not found. Looking for ${attribute.target}`);
   }
 
-  if (!_.has(attribute.morphBy, targetMeta.attributes)) {
+  if (attribute.morphBy && !_.has(attribute.morphBy, targetMeta.attributes)) {
     throw new Error(`Morph target attribute not found. Looking for ${attribute.morphBy}`);
   }
 };
 
 /**
  * Creates a morphMany relation metadata
- *
- * @param {string} attributeName
- * @param {Attribute} attribute
- * @param {ModelMetadata} meta
- * @param {Metadata} metadata
  */
-const createMorphMany = (attributeName, attribute, meta, metadata) => {
+const createMorphMany = (
+  attributeName: string,
+  attribute: RelationalAttribute,
+  meta: Meta,
+  metadata: Metadata
+) => {
   const targetMeta = metadata.get(attribute.target);
 
   if (!targetMeta) {
     throw new Error(`Morph target not found. Looking for ${attribute.target}`);
   }
 
-  if (!_.has(attribute.morphBy, targetMeta.attributes)) {
+  if (attribute.morphBy && !_.has(attribute.morphBy, targetMeta.attributes)) {
     throw new Error(`Morph target attribute not found. Looking for ${attribute.morphBy}`);
   }
 };
 
 /**
  * Creates a relation metadata
- *
- * @param {string} attributeName
- * @param {Attribute} attribute
- * @param {ModelMetadata} meta
- * @param {Metadata} metadata
  */
-const createRelation = (attributeName, attribute, meta, metadata) => {
+export const createRelation = (
+  attributeName: string,
+  attribute: RelationalAttribute,
+  meta: Meta,
+  metadata: Metadata
+) => {
   switch (attribute.relation) {
     case 'oneToOne':
       return createOneToOne(attributeName, attribute, meta, metadata);
@@ -351,7 +378,7 @@ const createRelation = (attributeName, attribute, meta, metadata) => {
     case 'manyToMany':
       return createManyToMany(attributeName, attribute, meta, metadata);
     case 'morphToOne':
-      return createMorphToOne(attributeName, attribute, meta, metadata);
+      return createMorphToOne(attributeName, attribute);
     case 'morphToMany':
       return createMorphToMany(attributeName, attribute, meta, metadata);
     case 'morphOne':
@@ -366,14 +393,13 @@ const createRelation = (attributeName, attribute, meta, metadata) => {
 
 /**
  * Creates a join column info and add them to the attribute meta
- * @param {Object} metadata metadata registry
- * @param {Object} param
- * @param {Object} param.attribute associated attribute
- * @param {string} param.attributeName name of the associated attribute
- * @param {Object} param.meta model metadata
  */
-const createJoinColum = (metadata, { attribute, attributeName /* meta */ }) => {
+const createJoinColum = (metadata: Metadata, { attribute, attributeName }: JoinDetails) => {
   const targetMeta = metadata.get(attribute.target);
+
+  if (!targetMeta) {
+    throw new Error(`Unknown target ${attribute.target}`);
+  }
 
   const joinColumnName = _.snakeCase(`${attributeName}_id`);
   const joinColumn = {
@@ -398,13 +424,8 @@ const createJoinColum = (metadata, { attribute, attributeName /* meta */ }) => {
 
 /**
  * Creates a join table and add it to the attribute meta
- * @param {Object} metadata metadata registry
- * @param {Object} param
- * @param {Object} param.attribute associated attribute
- * @param {string} param.attributeName name of the associated attribute
- * @param {Object} param.meta model metadata
  */
-const createJoinTable = (metadata, { attributeName, attribute, meta }) => {
+const createJoinTable = (metadata: Metadata, { attributeName, attribute, meta }: JoinDetails) => {
   const targetMeta = metadata.get(attribute.target);
 
   if (!targetMeta) {
@@ -429,7 +450,7 @@ const createJoinTable = (metadata, { attributeName, attribute, meta }) => {
     inverseOrderColumnName = `inv_${inverseOrderColumnName}`;
   }
 
-  const metadataSchema = {
+  const metadataSchema: Meta = {
     uid: joinTableName,
     tableName: joinTableName,
     attributes: {
@@ -483,7 +504,7 @@ const createJoinTable = (metadata, { attributeName, attribute, meta }) => {
     ],
   };
 
-  const joinTable = {
+  const joinTable: AttributeJoinTable = {
     name: joinTableName,
     joinColumn: {
       name: joinColumnName,
@@ -544,6 +565,12 @@ const createJoinTable = (metadata, { attributeName, attribute, meta }) => {
       );
     }
 
+    if (!isRelationAttribute(inverseAttribute)) {
+      throw new Error(
+        `inversedBy attribute ${attribute.inversedBy} targets non relational attribute in ${targetMeta.uid}`
+      );
+    }
+
     inverseAttribute.joinTable = {
       name: joinTableName,
       joinColumn: joinTable.inverseJoinColumn,
@@ -559,20 +586,4 @@ const createJoinTable = (metadata, { attributeName, attribute, meta }) => {
       inverseAttribute.joinTable.inverseOrderColumnName = orderColumnName;
     }
   }
-};
-
-const hasOrderColumn = (attribute) => isAnyToMany(attribute);
-const hasInverseOrderColumn = (attribute) => isBidirectional(attribute) && isManyToAny(attribute);
-
-module.exports = {
-  createRelation,
-  isPolymorphic,
-  isBidirectional,
-  isOneToAny,
-  isManyToAny,
-  isAnyToOne,
-  isAnyToMany,
-  hasOrderColumn,
-  hasInverseOrderColumn,
-  getJoinTableName,
 };

@@ -1,42 +1,24 @@
-'use strict';
+import _ from 'lodash/fp';
+import { errors } from '@strapi/utils';
 
-const _ = require('lodash/fp');
-
-const types = require('../types');
-const { createRelation } = require('./relations');
-
-class Metadata extends Map {
-  add(meta) {
-    return this.set(meta.uid, meta);
-  }
-
-  /**
-   * Validate the DB metadata, throwing an error if a duplicate DB table name is detected
-   */
-  validate() {
-    const seenTables = new Map();
-    for (const meta of this.values()) {
-      if (seenTables.get(meta.tableName)) {
-        throw new Error(
-          `DB table "${meta.tableName}" already exists. Change the collectionName of the related content type.`
-        );
-      }
-      seenTables.set(meta.tableName, true);
-    }
-  }
-}
+import * as types from '../types';
+import { createRelation, isRelationAttribute } from './relations';
+import { Metadata } from './types';
+import type { Attribute, Model, Meta, ComponentLinkMeta } from './types';
 
 // TODO: check if there isn't an attribute with an id already
 /**
  * Create Metadata from models configurations
- * @param {object[]} models
- * @returns {Metadata}
  */
-const createMetadata = (models = []) => {
+export const createMetadata = (models: Model[] = []): Metadata => {
   const metadata = new Metadata();
 
   // init pass
   for (const model of _.cloneDeep(models)) {
+    if ('id' in model.attributes) {
+      throw new Error('The attribute "id" is reserved and cannot be used in a model');
+    }
+
     metadata.add({
       singularName: model.singularName,
       uid: model.uid,
@@ -62,27 +44,29 @@ const createMetadata = (models = []) => {
 
     for (const [attributeName, attribute] of Object.entries(meta.attributes)) {
       try {
-        if (types.isComponent(attribute.type)) {
-          createComponent(attributeName, attribute, meta, metadata);
+        if (types.isComponent(attribute.type) && hasComponentsOrDz(meta)) {
+          createComponent(attributeName, attribute, meta);
           continue;
         }
 
-        if (types.isDynamicZone(attribute.type)) {
-          createDynamicZone(attributeName, attribute, meta, metadata);
+        if (types.isDynamicZone(attribute.type) && hasComponentsOrDz(meta)) {
+          createDynamicZone(attributeName, attribute, meta);
           continue;
         }
 
-        if (types.isRelation(attribute.type)) {
+        if (isRelationAttribute(attribute)) {
           createRelation(attributeName, attribute, meta, metadata);
           continue;
         }
 
-        createAttribute(attributeName, attribute, meta, metadata);
+        createAttribute(attributeName, attribute);
       } catch (error) {
         console.log(error);
-        throw new Error(
-          `Error on attribute ${attributeName} in model ${meta.singularName}(${meta.uid}): ${error.message}`
-        );
+        if (errors.isError(error)) {
+          throw new Error(
+            `Error on attribute ${attributeName} in model ${meta.singularName}(${meta.uid}): ${error.message}`
+          );
+        }
       }
     }
   }
@@ -100,14 +84,14 @@ const createMetadata = (models = []) => {
   return metadata;
 };
 
-const hasComponentsOrDz = (model) => {
+const hasComponentsOrDz = (model: Meta): model is ComponentLinkMeta => {
   return Object.values(model.attributes).some(
     ({ type }) => types.isComponent(type) || types.isDynamicZone(type)
   );
 };
 
 // NOTE: we might just move the compo logic outside this layer too at some point
-const createCompoLinkModelMeta = (baseModelMeta) => {
+const createCompoLinkModelMeta = (baseModelMeta: Meta): Meta => {
   return {
     // TODO: make sure there can't be any conflicts with a prefix
     // singularName: 'compo',
@@ -176,7 +160,11 @@ const createCompoLinkModelMeta = (baseModelMeta) => {
   };
 };
 
-const createDynamicZone = (attributeName, attribute, meta) => {
+const createDynamicZone = (
+  attributeName: string,
+  attribute: Attribute,
+  meta: ComponentLinkMeta
+) => {
   Object.assign(attribute, {
     type: 'relation',
     relation: 'morphToMany',
@@ -209,7 +197,7 @@ const createDynamicZone = (attributeName, attribute, meta) => {
   });
 };
 
-const createComponent = (attributeName, attribute, meta) => {
+const createComponent = (attributeName: string, attribute: Attribute, meta: ComponentLinkMeta) => {
   Object.assign(attribute, {
     type: 'relation',
     relation: attribute.repeatable === true ? 'oneToMany' : 'oneToOne',
@@ -236,9 +224,7 @@ const createComponent = (attributeName, attribute, meta) => {
   });
 };
 
-const createAttribute = (attributeName, attribute) => {
+const createAttribute = (attributeName: string, attribute: Attribute) => {
   const columnName = _.snakeCase(attributeName);
   Object.assign(attribute, { columnName });
 };
-
-module.exports = createMetadata;
