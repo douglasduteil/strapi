@@ -21,7 +21,7 @@ export default class PostgresDialect extends Dialect {
     this.db.connection.client.driver.types.setTypeParser(
       this.db.connection.client.driver.types.builtins.DATE,
       'text',
-      (v) => v
+      (v: unknown) => v
     );
     this.db.connection.client.driver.types.setTypeParser(
       this.db.connection.client.driver.types.builtins.NUMERIC,

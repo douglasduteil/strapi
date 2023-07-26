@@ -1,3 +1,5 @@
+import { ForeignKey, Index } from '../schema/types';
+
 export interface ColumnInfo {
   unsigned?: boolean;
   defaultTo?: unknown;
@@ -12,14 +14,21 @@ export interface Attribute {
   component?: string;
   repeatable?: boolean;
   relation?: string;
+  columnType?: {
+    type: string;
+    args: unknown[];
+  };
+}
+
+export interface JoinColumn {
+  name: string;
+  referencedColumn: string;
+  referencedTable?: string;
 }
 
 export interface JoinTable {
   name: string;
-  joinColumn: {
-    name: string;
-    referencedColumn: string;
-  };
+  joinColumn: JoinColumn;
   orderBy?: Record<string, 'asc' | 'desc'>;
   orderColumnName?: string;
   inverseOrderColumnName?: string;
@@ -33,16 +42,18 @@ export interface AttributeJoinTable extends JoinTable {
   };
 }
 
-export interface MorphJoinTable extends JoinTable {
-  morphColumn: {
-    typeColumn: {
-      name: string;
-    };
-    idColumn: {
-      name: string;
-      referencedColumn: string;
-    };
+export interface MorphColumn {
+  typeColumn: {
+    name: string;
   };
+  idColumn: {
+    name: string;
+    referencedColumn: string;
+  };
+}
+
+export interface MorphJoinTable extends JoinTable {
+  morphColumn: MorphColumn;
   inverseJoinColumn?: never;
 }
 
@@ -57,6 +68,9 @@ export interface RelationalAttribute extends Attribute {
   joinTable?: AttributeJoinTable | MorphJoinTable;
   morphBy?: string;
   inversedBy?: string;
+  owner?: boolean;
+  morphColumn?: MorphColumn;
+  joinColumn?: JoinColumn;
 }
 
 export interface Meta {
@@ -64,8 +78,8 @@ export interface Meta {
   uid: string;
   tableName: string;
   attributes: Record<string, Attribute>;
-  indexes: Record<string, unknown>[];
-  foreignKeys?: Record<string, unknown>[];
+  indexes: Index[];
+  foreignKeys?: ForeignKey[];
   lifecycles?: Record<string, unknown>;
   columnToAttribute?: Record<string, string>;
   componentLink?: Meta;

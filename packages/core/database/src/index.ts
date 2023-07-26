@@ -1,7 +1,7 @@
 import type { Knex } from 'knex';
 
 import { Dialect, getDialect } from './dialects';
-import createSchemaProvider from './schema';
+import { createSchemaProvider } from './schema';
 import { createMetadata } from './metadata';
 import { createEntityManager } from './entity-manager';
 import { createMigrationsProvider } from './migrations';

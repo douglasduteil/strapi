@@ -1,16 +1,20 @@
-'use strict';
+import createDebug from 'debug';
 
-const debug = require('debug')('strapi::database');
+import createSchemaBuilder from './builder';
+import createSchemaDiff from './diff';
+import createSchemaStorage from './storage';
+import { metadataToSchema } from './schema';
 
-const createSchemaBuilder = require('./builder');
-const createSchemaDiff = require('./diff');
-const createSchemaStorage = require('./storage');
-const { metadataToSchema } = require('./schema');
+import type { Database } from '..';
+
+export type * from './types';
+
+const debug = createDebug('strapi::database');
 
 /**
  * @type {import('.').default}
  */
-const createSchemaProvider = (db) => {
+export const createSchemaProvider = (db: Database) => {
   const schema = metadataToSchema(db.metadata);
 
   return {
@@ -90,5 +94,3 @@ const createSchemaProvider = (db) => {
     },
   };
 };
-
-module.exports = createSchemaProvider;

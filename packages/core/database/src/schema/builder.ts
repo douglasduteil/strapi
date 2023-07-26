@@ -1,9 +1,9 @@
-'use strict';
+import { isNil, prop, omit, castArray } from 'lodash/fp';
+import createDebug from 'debug';
 
-const { isNil, prop, omit, castArray } = require('lodash/fp');
-const debug = require('debug')('strapi::database');
+const debug = createDebug('strapi::database');
 
-module.exports = (db) => {
+export default (db: Database) => {
   const helpers = createHelpers(db);
 
   return {

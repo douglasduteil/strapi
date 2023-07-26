@@ -1,8 +1,10 @@
-'use strict';
+import * as types from '../types';
 
-const types = require('../types');
+import type { Metadata, Meta, Attribute } from '../metadata/types';
+import type { Column, Schema, Table } from './types';
+import { isRelationAttribute } from '../metadata/relations';
 
-const createColumn = (name, attribute) => {
+const createColumn = (name: string, attribute: Attribute): Column => {
   const { type, args = [], ...opts } = getColumnType(attribute);
 
   return {
@@ -17,8 +19,8 @@ const createColumn = (name, attribute) => {
   };
 };
 
-const createTable = (meta) => {
-  const table = {
+const createTable = (meta: Meta): Table => {
+  const table: Table = {
     name: meta.tableName,
     indexes: meta.indexes || [],
     foreignKeys: meta.foreignKeys || [],
@@ -28,7 +30,8 @@ const createTable = (meta) => {
   for (const key of Object.keys(meta.attributes)) {
     const attribute = meta.attributes[key];
 
-    if (types.isRelation(attribute.type)) {
+    // if (types.isRelation(attribute.type)) {
+    if (isRelationAttribute(attribute)) {
       if (attribute.morphColumn && attribute.owner) {
         const { idColumn, typeColumn } = attribute.morphColumn;
 
@@ -42,7 +45,7 @@ const createTable = (meta) => {
         );
 
         table.columns.push(createColumn(typeColumn.name, { type: 'string' }));
-      } else if (attribute.joinColumn && attribute.owner) {
+      } else if (attribute.joinColumn && attribute.owner && attribute.joinColumn.referencedTable) {
         // NOTE: we could pass uniquness for oneToOne to avoid creating more than one to one
 
         const { name: columnName, referencedColumn, referencedTable } = attribute.joinColumn;
@@ -68,6 +71,7 @@ const createTable = (meta) => {
         table.indexes.push({
           name: `${table.name}_${columnName}_fk`,
           columns: [columnName],
+          type: null,
         });
       }
     } else if (types.isScalar(attribute.type)) {
@@ -96,7 +100,7 @@ const createTable = (meta) => {
   return table;
 };
 
-const getColumnType = (attribute) => {
+const getColumnType = (attribute: Attribute) => {
   if (attribute.columnType) {
     return attribute.columnType;
   }
@@ -182,20 +186,14 @@ const getColumnType = (attribute) => {
   }
 };
 
-const metadataToSchema = (metadata) => {
-  const schema = {
+export const metadataToSchema = (metadata: Metadata): Schema => {
+  const schema: Schema = {
     tables: [],
-    addTable(table) {
-      this.tables.push(table);
-      return this;
-    },
   };
 
   metadata.forEach((metadata) => {
-    schema.addTable(createTable(metadata));
+    schema.tables.push(createTable(metadata));
   });
 
   return schema;
 };
-
-module.exports = { metadataToSchema, createTable };

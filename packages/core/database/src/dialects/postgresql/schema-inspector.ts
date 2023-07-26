@@ -1,5 +1,6 @@
-import { Database } from '../..';
-import { Schema, Column, Index, ForeignKey } from '../types';
+import type { Database } from '../..';
+import type { Schema, Column, Index, ForeignKey } from '../../schema/types';
+import type { SchemaInspector } from '../dialect';
 
 interface RawTable {
   table_name: string;
@@ -159,7 +160,7 @@ const getIndexType = (index: RawIndex) => {
   return null;
 };
 
-export default class PostgresqlSchemaInspector {
+export default class PostgresqlSchemaInspector implements SchemaInspector {
   db: Database;
 
   constructor(db: Database) {

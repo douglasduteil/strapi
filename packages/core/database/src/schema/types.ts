@@ -33,6 +33,10 @@ export interface ForeignKey {
   columns: string[];
   referencedColumns: string[];
   referencedTable: string | null;
-  onUpdate: string | null;
-  onDelete: string | null;
+  onUpdate?: string | null;
+  onDelete?: string | null;
+}
+
+export interface Diff {
+  status: 'CHANGED' | 'UNCHANGED';
 }

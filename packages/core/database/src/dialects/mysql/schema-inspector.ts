@@ -1,5 +1,6 @@
 import { Database } from '../..';
-import type { Column, ForeignKey, Index, Schema } from '../types';
+import type { Column, ForeignKey, Index, Schema } from '../../schema/types';
+import type { SchemaInspector } from '../dialect';
 
 interface RawTable {
   table_name: string;
@@ -133,7 +134,7 @@ const toStrapiType = (column: RawColumn) => {
   }
 };
 
-export default class MysqlSchemaInspector {
+export default class MysqlSchemaInspector implements SchemaInspector {
   db: Database;
 
   constructor(db: Database) {

@@ -1,8 +1,14 @@
 import type { Database } from '..';
+import type { Schema } from '../schema';
 
-// TODO: make abstract
+export interface SchemaInspector {
+  getSchema(): Promise<Schema>;
+}
+
 export default class Dialect {
   db: Database;
+
+  schemaInspector: SchemaInspector = {} as SchemaInspector;
 
   client: string;
 

@@ -1,10 +1,11 @@
-'use strict';
+import crypto from 'crypto';
 
-const crypto = require('crypto');
+import type { Database } from '..';
+import type { Schema } from './types';
 
 const TABLE_NAME = 'strapi_database_schema';
 
-module.exports = (db) => {
+export default (db: Database) => {
   const hasSchemaTable = () => db.getSchemaConnection().hasTable(TABLE_NAME);
 
   const createSchemaTable = () => {
@@ -45,11 +46,11 @@ module.exports = (db) => {
       };
     },
 
-    hashSchema(schema) {
+    hashSchema(schema: Schema) {
       return crypto.createHash('md5').update(JSON.stringify(schema)).digest('hex');
     },
 
-    async add(schema) {
+    async add(schema: Schema) {
       await checkTableExists();
 
       // NOTE: we can remove this to add history

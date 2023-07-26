@@ -1,6 +1,6 @@
-'use strict';
-
-const _ = require('lodash/fp');
+import _ from 'lodash/fp';
+import type { Schema, Table, Diff, Index, ForeignKey, Column } from './types';
+import type { Database } from '..';
 
 const RESERVED_TABLE_NAMES = ['strapi_migrations', 'strapi_database_schema'];
 
@@ -13,44 +13,43 @@ const statuses = {
 // => this will make the creation a bit more complicated (ordering, Object.values(tables | columns)) -> not a big pbl
 
 const helpers = {
-  hasTable(schema, tableName) {
+  hasTable(schema: Schema, tableName: string) {
     return schema.tables.findIndex((table) => table.name === tableName) !== -1;
   },
-  findTable(schema, tableName) {
+  findTable(schema: Schema, tableName: string) {
     return schema.tables.find((table) => table.name === tableName);
   },
-
-  hasColumn(table, columnName) {
+  hasColumn(table: Table, columnName: string) {
     return table.columns.findIndex((column) => column.name === columnName) !== -1;
   },
-  findColumn(table, columnName) {
+  findColumn(table: Table, columnName: string) {
     return table.columns.find((column) => column.name === columnName);
   },
 
-  hasIndex(table, columnName) {
+  hasIndex(table: Table, columnName: string) {
     return table.indexes.findIndex((column) => column.name === columnName) !== -1;
   },
-  findIndex(table, columnName) {
+  findIndex(table: Table, columnName: string) {
     return table.indexes.find((column) => column.name === columnName);
   },
 
-  hasForeignKey(table, columnName) {
+  hasForeignKey(table: Table, columnName: string) {
     return table.foreignKeys.findIndex((column) => column.name === columnName) !== -1;
   },
-  findForeignKey(table, columnName) {
+  findForeignKey(table: Table, columnName: string) {
     return table.foreignKeys.find((column) => column.name === columnName);
   },
 };
 
-module.exports = (db) => {
-  const hasChangedStatus = (diff) => diff.status === statuses.CHANGED;
+export default (db: Database) => {
+  const hasChangedStatus = (diff: Diff) => diff.status === statuses.CHANGED;
 
   /**
    * Compares two indexes info
    * @param {Object} oldIndex - index info read from DB
    * @param {Object} index - newly generate index info
    */
-  const diffIndexes = (oldIndex, index) => {
+  const diffIndexes = (oldIndex: Index, index: Index) => {
     const changes = [];
 
     if (!_.isEqual(oldIndex.columns, index.columns)) {
@@ -75,7 +74,7 @@ module.exports = (db) => {
    * @param {Object} oldForeignKey - foreignKey info read from DB
    * @param {Object} foreignKey - newly generate foreignKey info
    */
-  const diffForeignKeys = (oldForeignKey, foreignKey) => {
+  const diffForeignKeys = (oldForeignKey: ForeignKey, foreignKey: ForeignKey) => {
     const changes = [];
 
     if (_.difference(oldForeignKey.columns, foreignKey.columns).length > 0) {
@@ -115,7 +114,7 @@ module.exports = (db) => {
     };
   };
 
-  const diffDefault = (oldColumn, column) => {
+  const diffDefault = (oldColumn: Column, column: Column) => {
     const oldDefaultTo = oldColumn.defaultTo;
     const { defaultTo } = column;
 
@@ -210,7 +209,7 @@ module.exports = (db) => {
     };
   };
 
-  const diffTableIndexes = (srcTable, destTable) => {
+  const diffTableIndexes = (srcTable: Table, destTable: Table) => {
     const addedIndexes = [];
     const updatedIndexes = [];
     const unchangedIndexes = [];
@@ -250,7 +249,7 @@ module.exports = (db) => {
     };
   };
 
-  const diffTableForeignKeys = (srcTable, destTable) => {
+  const diffTableForeignKeys = (srcTable: Table, destTable: Table) => {
     const addedForeignKeys = [];
     const updatedForeignKeys = [];
     const unchangedForeignKeys = [];
@@ -304,7 +303,7 @@ module.exports = (db) => {
     };
   };
 
-  const diffTables = (srcTable, destTable) => {
+  const diffTables = (srcTable: Table, destTable: Table) => {
     const columnsDiff = diffTableColumns(srcTable, destTable);
     const indexesDiff = diffTableIndexes(srcTable, destTable);
     const foreignKeysDiff = diffTableForeignKeys(srcTable, destTable);
@@ -322,7 +321,7 @@ module.exports = (db) => {
     };
   };
 
-  const diffSchemas = async (srcSchema, destSchema) => {
+  const diffSchemas = async (srcSchema: Schema, destSchema: Schema) => {
     const addedTables = [];
     const updatedTables = [];
     const unchangedTables = [];
@@ -344,7 +343,7 @@ module.exports = (db) => {
       }
     }
 
-    const parsePersistedTable = (persistedTable) => {
+    const parsePersistedTable = (persistedTable: string | Table) => {
       if (typeof persistedTable === 'string') {
         return persistedTable;
       }

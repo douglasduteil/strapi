@@ -1,5 +1,6 @@
-import { Database } from '../..';
-import { Schema, Column, Index, IndexType, ForeignKey } from '../types';
+import type { Database } from '../..';
+import type { Schema, Column, Index, IndexType, ForeignKey } from '../../schema/types';
+import type { SchemaInspector } from '../dialect';
 
 const SQL_QUERIES = {
   TABLE_LIST: `select name from sqlite_master where type = 'table' and name NOT LIKE 'sqlite%'`,
@@ -100,7 +101,7 @@ const toStrapiType = (column: RawColumn) => {
   }
 };
 
-export default class SqliteSchemaInspector {
+export default class SqliteSchemaInspector implements SchemaInspector {
   db: Database;
 
   constructor(db: Database) {
