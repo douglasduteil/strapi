@@ -1,7 +1,7 @@
-export const REVIEW_WORKFLOW_STAGE_SORT_OPTION_NAME = {
-  value: 'strapi_stage[name]',
+export const REVIEW_WORKFLOW_ASSIGNEE_SORT_OPTION_NAME = {
+  value: 'strapi_assignee[name]',
   label: {
-    id: 'settings.defaultSortOrder.reviewWorkflows.label',
-    defaultMessage: 'Review Stage',
+    id: 'settings.defaultSortOrder.reviewWorkflows.assignee.label',
+    defaultMessage: 'Assignee',
   },
 };
