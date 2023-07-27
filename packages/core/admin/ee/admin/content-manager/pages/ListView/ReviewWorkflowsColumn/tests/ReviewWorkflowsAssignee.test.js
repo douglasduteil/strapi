@@ -18,13 +18,13 @@ const setup = (props) => render(<ComponentFixture {...props} />);
 
 describe('DynamicTable | ReviewWorkflowsAssignee', () => {
   test('will use displayname over first and last name', () => {
-    const displayname = 'Display Name';
-    const { getByText } = setup({ displayname });
+    const username = 'Display Name';
+    const { getByText } = setup({ user: { username } });
 
-    expect(getByText(displayname)).toBeInTheDocument();
+    expect(getByText(username)).toBeInTheDocument();
   });
   test('render assignee name', () => {
-    const { getByText } = setup({ firstname: 'Kai', lastname: 'Doe' });
+    const { getByText } = setup({ user: { firstname: 'Kai', lastname: 'Doe' } });
 
     expect(getByText('Kai Doe')).toBeInTheDocument();
   });
